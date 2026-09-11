@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this code, please cite this repository and the underlying data providers."
-title: "Cross-dataset prediction of trametinib response"
+title: "Cross-dataset anticancer drug-response modeling: gene and pathway representations"
 type: software
 authors:
   - family-names: Mohammed
@@ -8,14 +8,19 @@ authors:
 repository-code: "https://github.com/FranbonAhmed/trametinib-cross-dataset-drug-response"
 url: "https://github.com/FranbonAhmed/trametinib-cross-dataset-drug-response"
 license: MIT
-version: 0.1.0
-date-released: 2026-09-02
+version: 1.0.0
+date-released: 2026-09-10
 keywords:
   - pharmacogenomics
   - drug response
   - trametinib
+  - pharmacogenomic dataset shift
+  - gemcitabine
+  - docetaxel
+  - talazoparib
+  - vorinostat
+  - bortezomib
   - machine learning
   - external validation
   - gene expression
   - cancer cell lines
-
