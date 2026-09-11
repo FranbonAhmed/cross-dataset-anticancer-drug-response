@@ -3,6 +3,7 @@
 **A leakage-aware comparison of selected individual-gene and Hallmark-pathway representations trained with PRISM/DepMap and evaluated in GDSC.**
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![Tests](https://github.com/FranbonAhmed/trametinib-cross-dataset-drug-response/actions/workflows/tests.yml/badge.svg)](https://github.com/FranbonAhmed/trametinib-cross-dataset-drug-response/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/Code%20license-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-preliminary%20research-orange.svg)](#responsible-interpretation)
 
