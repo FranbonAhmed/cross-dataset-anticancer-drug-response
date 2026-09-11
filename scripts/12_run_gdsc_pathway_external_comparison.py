@@ -476,7 +476,16 @@ def main() -> None:
     if not gene_set_path.is_absolute():
         gene_set_path = project / gene_set_path
     training_predictions_path = table_folder / f"{prefix}_predictions.csv"
-    split_manifest_path = table_folder / "gdsc_external_validation_split_manifest.csv"
+    split_manifest_path = (
+        table_folder / f"{prefix}_gdsc_external_validation_split_manifest.csv"
+    )
+    legacy_manifest_path = table_folder / "gdsc_external_validation_split_manifest.csv"
+    if (
+        not split_manifest_path.exists()
+        and prefix == "trametinib"
+        and legacy_manifest_path.exists()
+    ):
+        split_manifest_path = legacy_manifest_path
     gene_external_predictions_path = (
         table_folder / f"{prefix}_gdsc_gene_external_predictions.csv"
     )

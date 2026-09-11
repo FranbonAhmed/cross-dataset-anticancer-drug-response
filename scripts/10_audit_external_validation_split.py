@@ -137,8 +137,9 @@ def main() -> None:
     table_folder.mkdir(parents=True, exist_ok=True)
 
     model_path = project / "data" / "raw" / "depmap" / "Model.csv"
-    prediction_path = table_folder / f"{safe_name(arguments.drug)}_predictions.csv"
-    response_path = table_folder / "gdsc_trametinib_records.csv"
+    prefix = safe_name(arguments.drug)
+    prediction_path = table_folder / f"{prefix}_predictions.csv"
+    response_path = table_folder / f"gdsc_{prefix}_records.csv"
     expression_manifest_path = table_folder / "gdsc_expression_model_manifest.csv"
 
     ach_column, sanger_column, ach_to_sanger, sanger_to_ach = load_model_mapping(
@@ -219,7 +220,7 @@ def main() -> None:
                 "prism_training_ach_models_without_sidm_mapping": len(
                     unmapped_training_ach_ids
                 ),
-                "gdsc_trametinib_response_models": len(response_ids),
+                "gdsc_drug_response_models": len(response_ids),
                 "gdsc_models_with_expression": len(expression_ids),
                 "gdsc_models_without_expression": len(response_ids - expression_ids),
                 "previously_seen_prism_training_models": len(seen_ids),
@@ -262,9 +263,13 @@ def main() -> None:
                 }
             )
 
-    summary_path = table_folder / "gdsc_external_validation_split_audit.csv"
-    manifest_path = table_folder / "gdsc_external_validation_split_manifest.csv"
-    unmapped_path = table_folder / "prism_training_ids_without_sanger_mapping.csv"
+    summary_path = table_folder / f"{prefix}_gdsc_external_validation_split_audit.csv"
+    manifest_path = (
+        table_folder / f"{prefix}_gdsc_external_validation_split_manifest.csv"
+    )
+    unmapped_path = (
+        table_folder / f"{prefix}_prism_training_ids_without_sanger_mapping.csv"
+    )
 
     write_rows(summary_path, summary_rows)
     write_rows(manifest_path, manifest_rows)

@@ -350,7 +350,16 @@ def main() -> None:
         / "rnaseq_merged_rsem_tpm_20260323.csv"
     )
     training_predictions_path = table_folder / f"{prefix}_predictions.csv"
-    split_manifest_path = table_folder / "gdsc_external_validation_split_manifest.csv"
+    split_manifest_path = (
+        table_folder / f"{prefix}_gdsc_external_validation_split_manifest.csv"
+    )
+    legacy_manifest_path = table_folder / "gdsc_external_validation_split_manifest.csv"
+    if (
+        not split_manifest_path.exists()
+        and prefix == "trametinib"
+        and legacy_manifest_path.exists()
+    ):
+        split_manifest_path = legacy_manifest_path
 
     for path in (
         depmap_expression_path,

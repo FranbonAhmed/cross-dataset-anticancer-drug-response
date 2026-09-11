@@ -19,6 +19,7 @@ from scipy.stats import spearmanr
 REQUIRED_COLUMNS = {
     "CELL_LINE_NAME",
     "SANGER_MODEL_ID",
+    "DRUG_ID",
     "DRUG_NAME",
     "LN_IC50",
     "AUC",
@@ -50,6 +51,98 @@ def require_columns(frame: pd.DataFrame, path: Path) -> None:
         raise ValueError(f"{path.name} is missing required columns: {sorted(missing)}")
 
 
+def choose_primary_screen(
+    selected: pd.DataFrame, dataset: str
+) -> tuple[pd.DataFrame, dict[str, object]]:
+    """Choose one GDSC drug ID without looking at model performance.
+
+    A named compound can occur under more than one GDSC ``DRUG_ID``. Mixing
+    those screens can combine different concentration ranges, while keeping
+    all rows creates duplicate dataset/model keys. We therefore choose the
+    screen with the widest model coverage. Ties are resolved by the number of
+    non-missing outcomes, then row count, then the lexical drug ID. This rule
+    uses coverage only and never examines correlations or downstream results.
+    """
+
+    if selected["DRUG_ID"].isna().any():
+        raise ValueError(f"{dataset} contains missing DRUG_ID values for the drug.")
+
+    candidates = (
+        selected.groupby("DRUG_ID", dropna=False)
+        .agg(
+            source_rows=("SANGER_MODEL_ID", "size"),
+            unique_sanger_models=("SANGER_MODEL_ID", "nunique"),
+            nonmissing_ln_ic50=("LN_IC50", "count"),
+            nonmissing_auc=("AUC", "count"),
+        )
+        .reset_index()
+    )
+    candidates["drug_id_sort"] = candidates["DRUG_ID"].astype(str)
+    candidates = candidates.sort_values(
+        [
+            "unique_sanger_models",
+            "nonmissing_ln_ic50",
+            "nonmissing_auc",
+            "source_rows",
+            "drug_id_sort",
+        ],
+        ascending=[False, False, False, False, True],
+        kind="mergesort",
+    )
+    chosen_id = candidates.iloc[0]["DRUG_ID"]
+    chosen = selected.loc[selected["DRUG_ID"].eq(chosen_id)].copy()
+    candidate_text = ";".join(candidates["DRUG_ID"].astype(str))
+
+    audit = {
+        "candidate_drug_id_count": int(len(candidates)),
+        "candidate_drug_ids_ranked": candidate_text,
+        "selected_primary_drug_id": chosen_id,
+        "primary_screen_source_rows": int(len(chosen)),
+        "primary_screen_unique_sanger_models": int(
+            chosen["SANGER_MODEL_ID"].nunique(dropna=True)
+        ),
+        "rows_excluded_from_nonprimary_drug_ids": int(len(selected) - len(chosen)),
+        "screen_selection_rule": (
+            "maximum unique Sanger-model coverage; ties by nonmissing outcomes, "
+            "row count, then lexical DRUG_ID"
+        ),
+    }
+    return chosen, audit
+
+
+def collapse_within_screen_duplicates(
+    selected: pd.DataFrame, dataset: str
+) -> tuple[pd.DataFrame, int]:
+    """Create one row per dataset/model after primary-screen selection."""
+
+    missing_ids = selected["SANGER_MODEL_ID"].isna()
+    if missing_ids.any():
+        selected = selected.loc[~missing_ids].copy()
+
+    duplicate_mask = selected.duplicated("SANGER_MODEL_ID", keep=False)
+    duplicate_rows = int(duplicate_mask.sum())
+    if not duplicate_rows:
+        selected["SOURCE_ROW_COUNT"] = 1
+        return selected, 0
+
+    collapsed_rows: list[pd.Series] = []
+    for model_id, group in selected.groupby("SANGER_MODEL_ID", sort=False):
+        names = group["CELL_LINE_NAME"].dropna().astype(str).str.strip().unique()
+        if len(names) > 1:
+            raise ValueError(
+                f"{dataset} primary screen maps {model_id} to conflicting names: "
+                f"{sorted(names)}"
+            )
+        row = group.iloc[0].copy()
+        row["LN_IC50"] = group["LN_IC50"].mean()
+        row["AUC"] = group["AUC"].mean()
+        row["SOURCE_ROW_COUNT"] = int(len(group))
+        collapsed_rows.append(row)
+
+    collapsed = pd.DataFrame(collapsed_rows).reset_index(drop=True)
+    return collapsed, duplicate_rows
+
+
 def load_one_dataset(path: Path, dataset: str, drug: str) -> tuple[pd.DataFrame, dict]:
     if not path.exists():
         raise FileNotFoundError(f"Required GDSC workbook not found: {path}")
@@ -70,18 +163,25 @@ def load_one_dataset(path: Path, dataset: str, drug: str) -> tuple[pd.DataFrame,
     selected["LN_IC50"] = pd.to_numeric(selected["LN_IC50"], errors="coerce")
     selected["AUC"] = pd.to_numeric(selected["AUC"], errors="coerce")
 
-    duplicate_keys = selected.duplicated(["source_dataset", "SANGER_MODEL_ID"], keep=False)
-    duplicate_key_rows = int(duplicate_keys.sum())
+    all_matching_rows = int(len(selected))
+    all_matching_models = int(selected["SANGER_MODEL_ID"].nunique(dropna=True))
+    selected, screen_audit = choose_primary_screen(selected, dataset)
+    selected, duplicate_key_rows = collapse_within_screen_duplicates(
+        selected, dataset
+    )
 
     inventory = {
         "source_dataset": dataset,
         "source_file": path.name,
         "source_rows": int(len(frame)),
         "drug_name_requested": drug,
-        "matching_drug_rows": int(len(selected)),
+        "matching_drug_rows_all_ids": all_matching_rows,
+        "unique_sanger_models_all_ids": all_matching_models,
+        **screen_audit,
+        "analysis_rows_after_resolution": int(len(selected)),
         "unique_sanger_models": int(selected["SANGER_MODEL_ID"].nunique(dropna=True)),
         "missing_sanger_model_id": int(selected["SANGER_MODEL_ID"].isna().sum()),
-        "duplicate_key_rows": duplicate_key_rows,
+        "within_primary_screen_duplicate_rows_collapsed": duplicate_key_rows,
         "missing_ln_ic50": int(selected["LN_IC50"].isna().sum()),
         "missing_auc": int(selected["AUC"].isna().sum()),
         "ln_ic50_min": float(selected["LN_IC50"].min()),
@@ -103,7 +203,14 @@ def cross_screen_agreement(combined: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for outcome in ["LN_IC50", "AUC"]:
         values = shared[[f"{outcome}_GDSC1", f"{outcome}_GDSC2"]].dropna()
-        rho = float(spearmanr(values.iloc[:, 0], values.iloc[:, 1]).statistic)
+        if (
+            len(values) < 3
+            or values.iloc[:, 0].nunique() < 2
+            or values.iloc[:, 1].nunique() < 2
+        ):
+            rho = float("nan")
+        else:
+            rho = float(spearmanr(values.iloc[:, 0], values.iloc[:, 1]).statistic)
         rows.append(
             {
                 "outcome": outcome,
@@ -157,4 +264,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
