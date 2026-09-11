@@ -30,11 +30,18 @@ In strict GDSC2 `LN_IC50` validation, Elastic Net achieved Pearson r=0.590 and S
 
 Used 4,374 matched genes to construct 50 fixed Hallmark scores with PRISM-learned normalization. In primary GDSC2 testing, Elastic Net pathway Pearson r=0.512 versus 0.590 for genes. The pathway-minus-gene difference was -0.078 (95% paired-bootstrap CI -0.144 to -0.015). Across 32 paired metrics, 18 favored genes and 14 were uncertain; none significantly favored pathways.
 
+## Phase 7 — Prespecified five-drug extension
+
+Froze a mechanism-diverse panel containing gemcitabine, docetaxel, talazoparib, vorinostat, and bortezomib, then applied the same core gene, pathway, identity-audit, and external-validation procedures without selecting drugs by their results.
+
+All five drugs completed successfully under the same panel hash. In the primary strict GDSC2 Elastic Net Pearson comparison, pathways were favored for gemcitabine, talazoparib, and bortezomib; genes were favored for vorinostat; and docetaxel was uncertain. GDSC1 did not reproduce the pathway advantage: four drugs favored genes and bortezomib was uncertain.
+
+Across 20 GDSC2 extension comparisons spanning two models and two correlations, eight favored pathways, six favored genes, and six were uncertain. Across the corresponding GDSC1 comparisons, 12 favored genes, eight were uncertain, and none favored pathways. Feature audits confirmed 19,204 aligned gene symbols, 1,000 training-selected genes, 50 Hallmark pathways built from 4,374 member genes, and zero GDSC outcomes used during training.
+
 ## Current conclusion
 
-The original pathway-superiority hypothesis was not supported. Pathways retained predictive signal and improved interpretability/compression, but did not improve trametinib accuracy. This negative finding is preserved rather than tuned away.
+The exploratory trametinib pathway-superiority hypothesis was not supported. The five-drug extension showed that pathway aggregation can improve some drug–dataset comparisons, but the advantage was not stable across models or GDSC screens. Representation rankings therefore appear to be part of the pharmacogenomic dataset-shift problem.
 
 ## Status
 
-The one-drug proof of concept is complete and frozen pending expert review. The planned next phase is a prespecified multi-drug extension using unchanged core methods.
-
+The pilot and prespecified five-drug extension are complete and frozen as version 1.0 pending expert methodological and biological review. Any secondary heterogeneity, batch-aware, or pathway-scoring analysis should be specified before it is run.

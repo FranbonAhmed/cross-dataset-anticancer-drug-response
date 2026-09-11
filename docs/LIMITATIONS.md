@@ -2,7 +2,7 @@
 
 ## Scientific scope
 
-- This is a one-drug proof of concept. The gene-versus-pathway result cannot be generalized to all anticancer drugs.
+- The project contains one exploratory pilot drug and five prespecified extension drugs. This remains too small a panel to generalize across all anticancer therapies or mechanism classes.
 - Experiments involve immortalized or established cancer cell lines, not patients.
 - Bulk RNA expression averages over cell populations and cannot describe intratumoral single-cell heterogeneity.
 - Cell-line systems omit important pharmacokinetic, immune, stromal, microenvironmental, and treatment-history effects.
@@ -23,27 +23,29 @@
 - Random Forest can model nonlinearities but can overfit high-dimensional, modest-sample data and shrink extreme predictions through averaging.
 - Mean-z Hallmark scoring assumes that averaging member-gene expression is a useful representation. It can cancel opposing signals, ignore gene directionality and interaction structure, and discard drug-specific effects.
 - Hyperparameter exploration was limited to the documented grids/settings.
+- Drug-specific 95% bootstrap intervals were not adjusted for multiple comparisons. Patterns across drugs should be interpreted descriptively and require replication.
+- A performance-blind coverage rule resolved compounds with multiple GDSC screen identifiers. This avoids selecting by predictive performance but can still change which experimental screen defines a drug outcome.
 
 ## Interpretation rules
 
-Appropriate claim:
+Appropriate overall claim:
 
-> Baseline expression carried a reproducible signal associated with trametinib response across the tested cell-line datasets, but simple Hallmark pathway aggregation did not improve external generalization over selected individual genes.
+> Baseline expression carried transferable drug-response information, but the relative performance of selected genes and simple Hallmark pathway averages depended on the drug, model, metric, and screening dataset.
 
 Inappropriate claims include:
 
 - “The model predicts whether a patient will respond.”
 - “Pearson r=0.590 means 59% accuracy.”
 - “The selected genes are trametinib biomarkers” without further validation.
-- “Pathways are worse than genes for cancer drug response” based on one drug.
+- “Pathways are universally better than genes” based on selected GDSC2 comparisons.
+- “Genes are universally better than pathways” based on the trametinib pilot or GDSC1 comparisons.
 - “The model is clinically validated.”
 
 ## Needed next steps
 
-1. Freeze the trametinib analysis and prespecify a small, mechanistically diverse drug panel.
-2. Apply the same pipeline without drug-specific tuning after results are viewed.
-3. Evaluate stability of selected genes and biological enrichment.
-4. Add batch-aware or domain-adaptation sensitivity analyses.
-5. Validate findings in additional experiments and, only if justified, patient-relevant datasets.
-6. Obtain expert biological and statistical review before publication claims.
-
+1. Freeze the completed pilot and extension as version 1.0 without post-result tuning.
+2. Obtain expert biological and statistical review of cross-screen heterogeneity and multiplicity.
+3. Prespecify any secondary analyses before running them.
+4. Evaluate stability of selected genes and pathway scores across training resamples.
+5. Add batch-aware or domain-adaptation sensitivity analyses.
+6. Validate findings in additional experiments and, only if justified, patient-relevant datasets.

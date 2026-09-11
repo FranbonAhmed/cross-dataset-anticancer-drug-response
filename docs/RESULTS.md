@@ -1,4 +1,6 @@
-# Results
+# Trametinib pilot results
+
+This file preserves the exploratory trametinib proof of concept. The completed prespecified five-drug extension is reported separately in [MULTIDRUG_RESULTS.md](MULTIDRUG_RESULTS.md).
 
 ## Cohort and feature audit
 
@@ -55,4 +57,3 @@ The results do not show that:
 - A Pearson correlation of 0.590 means 59% accuracy.
 
 The defensible conclusion is limited to a reproducible, one-drug, cancer-cell-line proof of concept.
-

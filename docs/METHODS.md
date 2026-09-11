@@ -1,48 +1,58 @@
 # Methods
 
-## Objective and design
+## Objective and analysis roles
 
-This study asked whether baseline cancer cell-line expression carries a signal that transfers between pharmacogenomic platforms for trametinib, and whether Hallmark pathway aggregation improves transfer relative to selected individual genes.
+This study asked whether baseline cancer cell-line expression carries a drug-response signal that transfers between pharmacogenomic platforms, and whether 50 Hallmark pathway scores transfer better than 1,000 selected individual genes.
 
-PRISM response and DepMap expression formed the training domain. GDSC response and Sanger-derived expression formed the external domain. The GDSC outcomes were not used for model fitting, preprocessing, feature selection, or hyperparameter selection.
+Trametinib was analyzed first as an exploratory pilot. A five-drug extension—gemcitabine, docetaxel, talazoparib, vorinostat, and bortezomib—was frozen before the extension results were run. The prespecified primary comparison was Elastic Net pathway-minus-gene Pearson correlation for GDSC2 `LN_IC50` in strict held-out cohorts with Sanger-derived expression.
+
+PRISM response and DepMap expression formed the training domain. GDSC response and Sanger-derived expression formed the external domain. GDSC outcomes were not used for model fitting, preprocessing, feature selection, pathway normalization, or hyperparameter selection.
 
 ## Training cohort construction
 
-1. The PRISM replicate-collapsed response matrix was reshaped from treatment-by-cell-line format to one treatment-cell-line record per row.
-2. Treatment metadata mapped the treatment key to the drug name.
-3. Records were filtered to the exact case-insensitive name `trametinib`.
-4. Multiple retained records for the same DepMap model, if present, were averaged to one response per `depmap_id`.
-5. DepMap protein-coding RNA expression was loaded with `ModelID` standardized to `depmap_id`.
-6. PRISM response and DepMap expression were inner-joined on `depmap_id`.
-7. The final training cohort contained 551 models with an observed response and expression.
+For each drug:
 
-The model input matrix `X` contained numeric baseline expression values. The outcome vector `y` contained PRISM replicate-collapsed log-fold change. Identifiers and tissue labels were retained for matching and auditing but were not predictors.
+1. The PRISM replicate-collapsed response matrix was reshaped from treatment-by-cell-line format to one treatment–cell-line record per row.
+2. Treatment metadata mapped a treatment key to the drug name.
+3. Records were filtered to the exact case-insensitive requested drug name.
+4. Multiple retained records for one DepMap model, if present, were averaged to one response per `depmap_id`.
+5. DepMap protein-coding RNA expression was loaded with `ModelID` standardized to `depmap_id`.
+6. Response and expression were inner-joined on `depmap_id`.
+
+The predictor matrix `X` contained numeric baseline expression values. The target vector `y` contained PRISM replicate-collapsed log-fold change. Identifiers and tissue labels were used for matching and auditing, not as model predictors.
+
+| Drug | PRISM/DepMap training rows |
+|---|---:|
+| Trametinib pilot | 551 |
+| Gemcitabine | 532 |
+| Docetaxel | 556 |
+| Talazoparib | 553 |
+| Vorinostat | 522 |
+| Bortezomib | 552 |
 
 ## Internal validation
 
-Random cell-line validation used five folds with shuffling and `random_state=42`. Each model received the same folds. Every cell line was predicted once by a model that had not trained on that row.
+Random cell-line validation used five folds with shuffling and `random_state=42`. Every cell line received one out-of-fold prediction from a model that had not trained on that row.
 
-The complete preprocessing and model pipeline was fitted separately within each training fold:
+The complete preprocessing and model pipeline was fitted separately inside each training fold:
 
 - Median imputation.
-- Univariate `f_regression` feature scoring.
+- Univariate `f_regression` scoring.
 - Selection of at most 1,000 genes.
 - Standardization for Elastic Net.
 - Model fitting.
 
-This placement prevents held-out responses from influencing feature selection or scaling.
-
-A stricter grouped sensitivity analysis used five `GroupKFold` splits defined by `primary_tissue`. Every test-fold tissue was absent from that fold's training set.
+This placement prevents held-out responses from influencing imputation, selection, or scaling. A stricter grouped sensitivity analysis used five `GroupKFold` splits defined by `primary_tissue`, so each test-fold tissue was absent from that fold's training rows.
 
 ## Models
 
 ### Mean baseline
 
-`DummyRegressor` predicted the training-fold mean response for every test row. It quantified performance available without expression information.
+`DummyRegressor` predicted the training-fold mean response. Its constant external predictions produce undefined correlations, recorded as missing values rather than as model failures.
 
 ### Elastic Net
 
-Elastic Net fitted a linear combination of selected standardized genes while penalizing coefficient size. `ElasticNetCV` tested `l1_ratio` values `0.1, 0.5, 0.9, 1.0` and 40 alpha values from `10^-3` to `10^1`, using inner three-fold cross-validation. The maximum iteration count was 50,000 and tolerance was `10^-3`.
+Elastic Net fitted a linear combination of selected standardized genes while penalizing coefficient size. `ElasticNetCV` tested `l1_ratio` values `0.1`, `0.5`, `0.9`, and `1.0` and 40 alpha values from `10^-3` to `10^1`, using inner three-fold cross-validation. Maximum iterations were 50,000 with tolerance `10^-3`.
 
 ### Random Forest
 
@@ -50,23 +60,28 @@ The Random Forest used 300 regression trees, `max_features="sqrt"`, a minimum of
 
 ## Pathway representation
 
-The human MSigDB Hallmark gene-symbol collection defined the pathways. Gene labels in DepMap were reduced from formats such as `BRAF (673)` to uppercase symbols. Pathways required at least 10 matched genes.
+The human MSigDB Hallmark gene-symbol collection defined pathway membership. DepMap labels such as `BRAF (673)` were reduced to uppercase gene symbols. Pathways required at least ten matched genes.
 
-Within each training fold, the pathway transformer:
+Within training data, the pathway transformer:
 
-1. Estimated per-gene medians from training rows.
-2. Imputed training and test rows with stored training medians.
-3. Estimated per-gene means and standard deviations from training rows.
-4. Converted expression to z-scores using those stored parameters.
-5. Averaged member-gene z-scores to one score per pathway.
+1. Estimated per-gene medians and imputed missing values.
+2. Estimated per-gene means and standard deviations.
+3. Converted expression to z-scores using stored training parameters.
+4. Averaged member-gene z-scores into one value per pathway.
 
-The reported pathway representation contained 50 Hallmark scores built from 4,374 unique matched genes.
+Every drug analysis used 50 Hallmark scores constructed from 4,374 unique member genes shared with the aligned expression matrix. Training-derived medians, means, and standard deviations were applied unchanged to external GDSC expression.
+
+## GDSC response-screen resolution
+
+GDSC1 and GDSC2 workbooks were filtered to the requested drug name. When one name corresponded to multiple `DRUG_ID` values, the pipeline selected the screen with the greatest number of unique Sanger models. Ties were resolved using nonmissing outcomes, then row count, then lexical `DRUG_ID`. This rule did not inspect model performance.
+
+The response key was `dataset + SANGER_MODEL_ID`. `LN_IC50` was the primary external outcome and `AUC` was secondary.
 
 ## External-cohort construction
 
-GDSC1 and GDSC2 fitted-dose-response workbooks were filtered to exact case-insensitive `Trametinib`. The response-expression join used `SANGER_MODEL_ID`. The Cell Model Passports RNA-seq matrix was transposed so one row represented one Sanger model and one column represented one gene.
+The Cell Model Passports RNA-seq matrix was transposed so one row represented one Sanger model and one column represented one gene. Response and expression were joined on `SANGER_MODEL_ID`.
 
-The DepMap `Model.csv` crosswalk mapped PRISM/DepMap `ModelID` values to `SangerModelID`. Directly mapped training identities were excluded. Training identities without a Sanger mapping were additionally compared using normalized cell-line names; the audit found no additional matches.
+DepMap `Model.csv` mapped PRISM/DepMap `ModelID` values to `SangerModelID`. Directly mapped training identities were excluded. Training identities without a Sanger mapping were also audited using normalized cell-line names.
 
 The primary strict cohort required:
 
@@ -75,29 +90,38 @@ The primary strict cohort required:
 - No mapped identity seen in PRISM training.
 - Sanger-derived expression.
 
-This produced 351 GDSC2 models. The parallel GDSC1 strict cohort contained 319 models and was used as a cross-screen replication. Analyses allowing all expression sources were retained as sensitivity cohorts.
+The parallel GDSC1 strict cohort was used as supporting cross-screen replication. GDSC1 and GDSC2 share biological models, so they are not treated as fully independent cell-line cohorts.
+
+| Drug | Strict GDSC2 n | Strict GDSC1 n |
+|---|---:|---:|
+| Trametinib pilot | 351 | 319 |
+| Gemcitabine | 349 | 335 |
+| Docetaxel | 351 | 336 |
+| Talazoparib | 347 | 323 |
+| Vorinostat | 352 | 339 |
+| Bortezomib | 348 | 191 |
 
 ## Cross-platform gene alignment
 
-DepMap and GDSC feature names were reduced to gene symbols. Duplicate GDSC rows for an overlapping symbol were averaged. A fixed set of 19,204 common gene symbols was placed in identical order in the training and external matrices.
+DepMap and GDSC feature names were reduced to gene symbols. Duplicate GDSC rows for an overlapping symbol were averaged. Every analysis used 19,204 common symbols in the same order in training and external matrices.
 
-For the gene analysis, the full pipeline was fitted on all 551 PRISM rows and selected 1,000 features using PRISM outcomes only. It then predicted GDSC expression rows.
+For gene models, the entire preprocessing pipeline was refit on the drug-specific PRISM cohort and selected 1,000 genes using PRISM outcomes only. For pathway models, pathway preprocessing and model parameters were learned from the same drug-specific PRISM cohort. Final fitted pipelines generated GDSC predictions without refitting on GDSC outcomes.
 
-For the pathway analysis, pathway medians, means, standard deviations, and model parameters were learned from the same 551 PRISM rows and applied unchanged to GDSC.
-
-## Evaluation
+## Evaluation and uncertainty
 
 Internal validation used Pearson correlation, Spearman rank correlation, root mean squared error, and mean absolute error because predictions and outcomes shared the PRISM scale.
 
 External validation used Pearson and Spearman correlations. Cross-platform RMSE and MAE were not interpreted because PRISM log-fold change, GDSC `LN_IC50`, and GDSC `AUC` are different response quantities with different scales.
 
-Nonparametric bootstrap sampling with replacement over external cell lines generated 95% intervals for model correlations. Paired bootstrap intervals compared pathway and gene correlations on identical rows. One thousand successful bootstrap samples were targeted for the external analyses.
+Nonparametric bootstrap sampling with replacement over external cell lines generated 95% intervals for correlations. Paired bootstrap intervals compared pathway and gene correlations on identical rows. One thousand successful resamples were targeted per learned-model comparison. The reported per-drug intervals were not adjusted for multiple comparisons.
 
 ## Reproducibility controls
 
-- Identical row identifiers were excluded from strict external cohorts.
-- GDSC outcomes used during training were audited as zero.
-- Preprocessing was fitted only on training rows.
-- Models and representations were evaluated on identical cohort rows.
-- Split manifests and predictions were saved locally; aggregate feature audits and metric tables were retained for public reporting.
+- The extension panel and analysis role were recorded before the extension run.
+- Identical mapped training models were excluded from strict external cohorts.
+- GDSC outcomes used during training were audited as zero for every gene and pathway analysis.
+- Preprocessing and feature construction were fitted only on PRISM training rows.
+- Gene and pathway models were evaluated on identical external rows.
 - Random seeds were fixed where supported.
+- All five extension drugs, including null or unfavorable comparisons, were retained in aggregate reports.
+- Split, feature, inventory, and screen-selection audits were saved with the derived results.
