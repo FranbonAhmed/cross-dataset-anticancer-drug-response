@@ -1,0 +1,7 @@
+panel_order,drug_name,study_role,mechanism_class,prism_training_models,training_models_mapped_to_sanger,training_models_without_sanger_mapping,gdsc2_response_models,gdsc2_models_with_expression,gdsc2_strict_heldout_models,gdsc1_response_models,gdsc1_models_with_expression,gdsc1_strict_heldout_models,common_gene_symbols,genes_selected_inside_training,pathway_member_genes,hallmark_pathways,gdsc_outcomes_used_during_training
+1,trametinib,Exploratory pilot,MEK inhibition,551,445,106,966,941,351,881,859,319,19204,1000,4374,50,0
+2,gemcitabine,Confirmatory extension,Antimetabolite,532,431,101,960,935,349,920,898,335,19204,1000,4374,50,0
+3,docetaxel,Confirmatory extension,Microtubule stabilization,556,448,108,967,942,351,933,911,336,19204,1000,4374,50,0
+4,talazoparib,Confirmatory extension,PARP inhibition,553,447,106,956,931,347,899,877,323,19204,1000,4374,50,0
+5,vorinostat,Confirmatory extension,HDAC inhibition,522,421,101,959,934,352,933,911,339,19204,1000,4374,50,0
+6,bortezomib,Confirmatory extension,Proteasome inhibition,552,444,108,957,932,348,393,392,191,19204,1000,4374,50,0
