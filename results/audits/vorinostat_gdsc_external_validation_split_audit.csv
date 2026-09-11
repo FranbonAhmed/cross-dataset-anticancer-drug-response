@@ -1,0 +1,3 @@
+dataset,prism_training_ach_models,prism_training_models_mapped_to_sidm,prism_training_ach_models_without_sidm_mapping,gdsc_drug_response_models,gdsc_models_with_expression,gdsc_models_without_expression,previously_seen_prism_training_models,held_out_models_any_expression_source,held_out_sanger_expression_models,held_out_broad_expression_models,seen_sanger_expression_models,seen_broad_expression_models
+GDSC1,522,421,101,933,911,22,360,551,339,212,42,318
+GDSC2,522,421,101,959,934,25,362,572,352,220,41,321
