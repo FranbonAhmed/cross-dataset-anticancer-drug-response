@@ -1,0 +1,7 @@
+panel_order,drug_name,study_role,mechanism_class,molecular_target,gdsc_pathway_annotation,n_prism_cells,n_prism_observations,prism_response_mean,prism_response_sd,n_gdsc2_unique_models,gdsc2_ln_ic50_sd,coverage_gate,gdsc1_overlap_status
+1,trametinib,Exploratory pilot,MEK inhibition,"MEK1, MEK2",ERK MAPK signaling,570,570,-0.6109675504,1.2196113759,966,2.2559701616,PASS,Pending recheck
+2,gemcitabine,Confirmatory extension,Antimetabolite,Pyrimidine antimetabolite,DNA replication,550,550,-2.0790295215,1.3322858559,960,3.0094163533,PASS,Pending recheck
+3,docetaxel,Confirmatory extension,Microtubule stabilization,Microtubule stabiliser,Mitosis,575,1119,-2.171415602,1.3872256834,968,2.5486197533,PASS,Pending recheck
+4,talazoparib,Confirmatory extension,PARP inhibition,"PARP1, PARP2",Genome integrity,572,572,-1.047675107,1.2743234968,956,2.2116958554,PASS,Pending recheck
+5,vorinostat,Confirmatory extension,HDAC inhibition,"HDAC classes I, IIa, IIb, IV",Chromatin histone acetylation,538,538,-1.6406608099,1.4772028401,959,1.0901678625,PASS,Pending recheck
+6,bortezomib,Confirmatory extension,Proteasome inhibition,Proteasome,Protein stability and degradation,571,571,-4.1750778315,1.177261737,957,1.0674815997,PASS,Pending recheck
