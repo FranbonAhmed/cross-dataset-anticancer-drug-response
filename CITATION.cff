@@ -5,11 +5,11 @@ type: software
 authors:
   - family-names: Mohammed
     given-names: Franbon Ahmed
-repository-code: "https://github.com/FranbonAhmed/trametinib-cross-dataset-drug-response"
-url: "https://github.com/FranbonAhmed/trametinib-cross-dataset-drug-response"
+repository-code: "https://github.com/FranbonAhmed/cross-dataset-anticancer-drug-response"
+url: "https://github.com/FranbonAhmed/cross-dataset-anticancer-drug-response"
 license: MIT
 version: 1.0.0
-date-released: 2026-09-10
+date-released: 2026-09-11
 keywords:
   - pharmacogenomics
   - drug response
